@@ -1,129 +1,175 @@
-# Extended Kalman Filter Project Starter Code
-Self-Driving Car Engineer Nanodegree Program
+[//]: # (Image References)
 
-In this project you will utilize a kalman filter to estimate the state of a moving object of interest with noisy lidar and radar measurements. Passing the project requires obtaining RMSE values that are lower than the tolerance outlined in the project rubric. 
+[image1]: ./Simulator_Output.PNG "Screenshot of Simulator Receiving State Estimates from ExtendedKF program"
 
-This project involves the Term 2 Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)
+# Danny's Extended Kalman Filter Project 
 
-This repository includes two files that can be used to set up and install [uWebSocketIO](https://github.com/uWebSockets/uWebSockets) for either Linux or Mac systems. For windows you can use either Docker, VMware, or even [Windows 10 Bash on Ubuntu](https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/) to install uWebSocketIO. Please see the uWebSocketIO Starter Guide page in the classroom within the EKF Project lesson for the required version and installation scripts.
+This repository contains all the source files and compiler instructions needed in order to build an executable called `ExtendedKF` which can provide a kalman-filtered estimate of an object state measured by LiDAR and RADAR sensors.  The object state is composed of 2-D position and 2-D velocity.  The `ExtendedKF` executable expects to interact with a car/object-data simulator built by Udacity (which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)).  This simulator provides the LiDAR and RADAR measurements and the `ExtendedKF` executable takes in these measurements, performs the Kalman Filter operations and then provides the measurements back to the simulator in order to be plotted.  The program also calculates the Root-Mean-Squared-Error (RMSE) for the object state estimates and the ground truth measurements (RADAR and LiDAR).  
 
-Once the install for uWebSocketIO is complete, the main program can be built and run by doing the following from the project top directory.
-
-1. mkdir build
-2. cd build
-3. cmake ..
-4. make
-5. ./ExtendedKF
-
-Tips for setting up your environment can be found in the classroom lesson for this project.
-
-Note that the programs that need to be written to accomplish the project are src/FusionEKF.cpp, src/FusionEKF.h, kalman_filter.cpp, kalman_filter.h, tools.cpp, and tools.h
-
-The program main.cpp has already been filled out, but feel free to modify it.
-
-Here is the main protocol that main.cpp uses for uWebSocketIO in communicating with the simulator.
+The training performance achieved with this last model (Version 7) and assoicated training data (20% validation set split off after shuffle):
+![alt text][image1]
 
 
-INPUT: values provided by the simulator to the c++ program
 
-["sensor_measurement"] => the measurement that the simulator observed (either lidar or radar)
+##Udacity Provided Starter Code and Resources
+The following files were all provided in their initial form from the [project repository](https://github.com/udacity/CarND-Extended-Kalman-Filter-Project).   The files in **bold** is what I modified to implement the Kalman Filter and make the program work as intended.
+* src/main.cpp
+* src/**FusionEKF.cpp**
+* src/FusionEKF.h 
+* src/**kalman_filter.cpp**
+* src/kalman_filter.h
+* src/**tools.cpp**
+* src/tools.h
+
+As previously mentioned the simulator program can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases).
+
+I used a local Windows 10 environment setup in order to code and compile this program.  It was seemless/easy to setup by installing and using an "app" called Ubuntu Bash 16.04.  Here are the steps I took:
+* Setup Ubuntu Bash using this [guide](https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/)
+
+Enter the following commands in the terminal:
+* `git clone https://github.com/dannybynum/DWB_Udacity_KalmanFilter_Project`
+* `./install-ubuntu.sh`  //this installed all of the compilers as well as the uWebSocketIO utility that is needed for `ExtendedKF` "communicate" with the simulator
+* `mkdir build && cd build` then `cmake .. && make` then `./ExtendedKF`  //this should test the building/compiling and then running of the program
+
+Copying files back and forth from my windows environment where I used the text editor
+```
+sudo cp -a /mnt/c/users/bynum/documents/udacity/term1/project5_ekf_windows/src/. src/
+```
 
 
-OUTPUT: values provided by the c++ program to the simulator
+##Brief Code Walk-through
 
-["estimate_x"] <= kalman filter estimated position x
-["estimate_y"] <= kalman filter estimated position y
-["rmse_x"]
-["rmse_y"]
-["rmse_vx"]
-["rmse_vy"]
+main.cpp (Udacity provided code):
+---
+Read in the measurement data - example shown for LASER data:
+```cpp
+if (sensor_type.compare("L") == 0) {
+            meas_package.sensor_type_ = MeasurementPackage::LASER;
+            meas_package.raw_measurements_ = VectorXd(2);
+            float px;
+            float py;
+            iss >> px;
+            iss >> py;
+            meas_package.raw_measurements_ << px, py;
+            iss >> timestamp;
+            meas_package.timestamp_ = timestamp;
+```
 
+Call the main function - note this gets called for every measurement
+```cpp
+// Call ProcessMeasurement(meas_package) for Kalman filter
+          fusionEKF.ProcessMeasurement(meas_package);       
+```
+
+Send the estimations and ground truth over to the function that calculates the RMSE
+```cpp
+VectorXd estimate(4);
+
+          double p_x = fusionEKF.ekf_.x_(0);
+          double p_y = fusionEKF.ekf_.x_(1);
+          double v1  = fusionEKF.ekf_.x_(2);
+          double v2 = fusionEKF.ekf_.x_(3);
+
+          estimate(0) = p_x;
+          estimate(1) = p_y;
+          estimate(2) = v1;
+          estimate(3) = v2;
+        
+          estimations.push_back(estimate);
+
+          VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
+```
+
+FusionEKF.cpp (my code):
 ---
 
-## Other Important Dependencies
+Initialize the State Vector x - Use the first measurement - example shown for Laser:
+```cpp
+  if (!is_initialized_) {
+    /**
+     * TODO: Initialize the state ekf_.x_ with the first measurement.
+     * TODO: Create the covariance matrix.   //done in constructor step above, created P
+     * You'll need to convert radar from polar to cartesian coordinates.
+     */
 
-* cmake >= 3.5
-  * All OSes: [click here for installation instructions](https://cmake.org/install/)
-* make >= 4.1 (Linux, Mac), 3.81 (Windows)
-  * Linux: make is installed by default on most Linux distros
-  * Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
-  * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
-* gcc/g++ >= 5.4
-  * Linux: gcc / g++ is installed by default on most Linux distros
-  * Mac: same deal as make - [install Xcode command line tools](https://developer.apple.com/xcode/features/)
-  * Windows: recommend using [MinGW](http://www.mingw.org/)
+    // first measurement
+    cout << "Starting EKF... " << endl;
+    ekf_.x_ = VectorXd(4);
+    ekf_.x_ << 1, 1, 1, 1;
+```
+[...]
+```cpp
+    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+      // TODO: Initialize state.
+          // set the state with the initial location and zero velocity
+      ekf_.x_ << measurement_pack.raw_measurements_[0], 
+              measurement_pack.raw_measurements_[1], 
+              0, 
+              0;
 
-## Basic Build Instructions
+    }
+```
 
-1. Clone this repo.
-2. Make a build directory: `mkdir build && cd build`
-3. Compile: `cmake .. && make` 
-   * On windows, you may need to run: `cmake .. -G "Unix Makefiles" && make`
-4. Run it: `./ExtendedKF `
 
-## Editor Settings
+Figure out how much time has passed and use this to predict the new state based on previous state and elapsed time (Kalman Process Step1):
+```cpp
+  float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
+  previous_timestamp_ = measurement_pack.timestamp_;
+```
+[...]
+```cpp
+ // Modify the F matrix so that the time is integrated
+  ekf_.F_(0, 2) = dt;
+  ekf_.F_(1, 3) = dt;
+```
+[...]
+```cpp
+ekf_.Predict();
+```
 
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
+Now that we have a predicted state lets combine this with the new measurement and then publish the Kalman State Estimate (Kalman Process Step2):
+(Note the example shown is for Laser)
+```cpp
+    ekf_.R_ = R_laser_;
+    ekf_.H_ = H_laser_;
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
+    ekf_.Update(measurement_pack.raw_measurements_);   //call the update function since laser
+```
 
-## Code Style
 
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
+kalman_filter.cpp (my code):
+---
+The Predict() and Update() steps (called in FusionEKF.cpp) are defined in the `kalman_filter.cpp` file as follows:
+(Note the update example is for Laser)
 
-## Generating Additional Data
+```cpp
+void KalmanFilter::Predict() {
+  /**
+   * TODO: predict the state
+   */
+  x_ = F_ * x_;
+  MatrixXd Ft = F_.transpose();
+  P_ = F_ * P_ * Ft + Q_;
+}
+```
+[...]
+```cpp
+void KalmanFilter::Update(const VectorXd &z) {
+  /**
+   * TODO: update the state by using Kalman Filter equations
+   */
+  VectorXd z_pred = H_ * x_;
+  VectorXd y = z - z_pred;
+  MatrixXd Ht = H_.transpose();
+  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd Si = S.inverse();
+  MatrixXd PHt = P_ * Ht;
+  MatrixXd K = PHt * Si;
 
-This is optional!
-
-If you'd like to generate your own radar and lidar data, see the
-[utilities repo](https://github.com/udacity/CarND-Mercedes-SF-Utilities) for
-Matlab scripts that can generate additional data.
-
-## Project Instructions and Rubric
-
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
-
-More information is only accessible by people who are already enrolled in Term 2
-of CarND. If you are enrolled, see [the project resources page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/382ebfd6-1d55-4487-84a5-b6a5a4ba1e47)
-for instructions and the project rubric.
-
-## Hints and Tips!
-
-* You don't have to follow this directory structure, but if you do, your work
-  will span all of the .cpp files here. Keep an eye out for TODOs.
-* Students have reported rapid expansion of log files when using the term 2 simulator.  This appears to be associated with not being connected to uWebSockets.  If this does occur,  please make sure you are conneted to uWebSockets. The following workaround may also be effective at preventing large log files.
-
-    + create an empty log file
-    + remove write permissions so that the simulator can't write to log
- * Please note that the ```Eigen``` library does not initialize ```VectorXd``` or ```MatrixXd``` objects with zeros upon creation.
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to ensure
-that students don't feel pressured to use one IDE or another.
-
-However! We'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Regardless of the IDE used, every submitted project must
-still be compilable with cmake and make.
-
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
-
+  //new estimate
+  x_ = x_ + (K * y);
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - K * H_) * P_;
+}
+```
