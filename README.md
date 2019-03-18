@@ -1,6 +1,6 @@
 [//]: # (Image References)
 
-[image1]: ./Simulator_Output.PNG "Screenshot of Simulator Receiving State Estimates from ExtendedKF program"
+[image1]: ./Simulator_Output2.PNG "Screenshot of Simulator Receiving State Estimates from ExtendedKF program"
 
 # Danny's Extended Kalman Filter Project 
 
@@ -34,6 +34,11 @@ Enter the following commands in the terminal:
 Copying files back and forth from my windows environment where I used the text editor
 ```
 sudo cp -a /mnt/c/users/bynum/documents/udacity/term1/project5_ekf_windows/src/. src/
+```
+
+Putting all the commands together on one line once starting in the build directory on my machine (/DWB_Udacity_KalmanFilter_Project/build):
+```linux
+cd .. && sudo cp -a /mnt/c/users/bynum/documents/udacity/term1/project5_ekf_windows/src/. src/ && cd build && sudo cmake .. && sudo make && ./ExtendedKF
 ```
 
 
@@ -96,6 +101,7 @@ Initialize the State Vector x - Use the first measurement - example shown for La
     cout << "Starting EKF... " << endl;
     ekf_.x_ = VectorXd(4);
     ekf_.x_ << 1, 1, 1, 1;
+    previous_timestamp_ = measurement_pack.timestamp_; //Added this last min Mar-18 845am, toggled this on off on Monday Mar-18, On is satisfactory project accuracy!!
 ```
 [...]
 ```cpp
