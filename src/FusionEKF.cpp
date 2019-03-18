@@ -103,6 +103,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     ekf_.x_ = VectorXd(4);
     ekf_.x_ << 1, 1, 1, 1;
 
+    previous_timestamp_ = measurement_pack.timestamp_; //Added this last min Mar-18 845am, toggled this on off on Monday Mar-18, On is satisfactory project accuracy!!
+
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       // TODO: Convert radar from polar to cartesian coordinates 
       //         and initialize state.
@@ -154,7 +156,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     // done initializing, no need to predict or update
     is_initialized_ = true;
     return;
-    previous_timestamp_ = measurement_pack.timestamp_;
+    
     //ekf_.Init(ekf_.x_, ekf_.P_, ekf_.F_, ekf_.H_, ekf_.R_, ekf_.Q_);  //FIXME - not using the ekf.Init() function right now - doesn't seem like I need it!??
   }
 

@@ -65,28 +65,35 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   //VectorXd z_pred_rad = H_ * x_;  //update this, manual calculation I suppose...
   //Starting here this is all to come up with polar conversion for state prediction
   float temp_px = x_(0);
-  float temp_py= x_(1);
+  float temp_py = x_(1);
   float temp_vx = x_(2);
   float temp_vy = x_(3);
 
-  //FIXME - latest Tshoot at 1030pm on Sunday I commented this out but not sure I want to keep it
-  // // check division by zero
-  // if (fabs(temp_px) < 0.1) {
-  //   cout<<temp_px<<" ";
-  //   cout << "DWB adjusting temp_px" << endl;
-  //   temp_px = 0.05;  //magic number FIXME - for tshoot only
-  // }
+  //Monday Mar-18 Change, add this back in with values as suggested by project review
+  // check division by zero
+  if (fabs(temp_px) < 0.001) {
+    cout<<temp_px<<" ";
+    cout << "DWB adjusting temp_px" << endl;
+    temp_px = 0.001;  
+  }
 
-  // if (fabs(temp_py) < 0.1) {
-  //   cout<<temp_py<<" ";
-  //   cout << "DWB adjusting temp_py" << endl;
-  //   temp_py = 0.05;  //magic number FIXME - for tshoot only
-  // }
+  if (fabs(temp_py) < 0.001) {
+    cout<<temp_py<<" ";
+    cout << "DWB adjusting temp_py" << endl;
+    temp_py = 0.001;  
+  }
 
-  // pre-compute a set of terms to avoid repeated calculation
+  // Similar to code from lecture, pre-compute a set of terms to avoid repeated calculation
   float c1 = sqrt((temp_px*temp_px)+(temp_py*temp_py));
-  //float c2 = atan(temp_py/temp_px);   //FIXME - want atan to return -pi to pi, see lecture notes
-  float c2 = atan2(temp_py,temp_px);   //FIXME - want atan to return -pi to pi, see lecture notes
+    
+  if (fabs(c1) < 0.001) {
+    cout<<c1<<" ";
+    cout << "DWB adjusting c1" << endl;
+    c1 = 0.001;  
+  }
+
+
+  float c2 = atan2(temp_py,temp_px);   //using atan2 because it returns -pi to pi
 
   
  
